@@ -61,6 +61,9 @@ const (
 )
 
 func NewSSHServer(handler SSHHandler) *Server {
+	var supportedMACs = []string{
+		"hmac-sha2-256-etm@openssh.com", "hmac-sha2-256",
+	}
 	srv := &ssh.Server{
 		LocalPortForwardingCallback: func(ctx ssh.Context, destinationHost string, destinationPort uint32) bool {
 			return handler.LocalPortForwardingPermission(ctx, destinationHost, destinationPort)
@@ -82,6 +85,12 @@ func NewSSHServer(handler SSHHandler) *Server {
 		Handler:     handler.SessionHandler,
 		SubsystemHandlers: map[string]ssh.SubsystemHandler{
 			sshSubSystemSFTP: handler.SFTPHandler,
+		},
+		ServerConfigCallback: func(ctx ssh.Context) *gossh.ServerConfig {
+			var config *gossh.ServerConfig
+			// config = ssh.ServerConfigCallback(ctx)
+			ctx.SetValue("MACs", supportedMACs)
+			return config
 		},
 		ChannelHandlers: map[string]ssh.ChannelHandler{
 			sshChannelSession: ssh.DefaultSessionHandler,
